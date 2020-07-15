@@ -72,7 +72,7 @@ export function workerGitCI(args: {
             const stashResponse = await git.stash([
               "push",
               "-m",
-              `"git-polling-worker-ci: ${new Date().toISOString()}"`,
+              `git-polling-worker-ci: ${new Date().toISOString()}`,
             ]);
 
             console.log(stashResponse);
