@@ -54,7 +54,7 @@ export function workerGitCI(args: {
         console.log(
           `Worker Git CI Tracking: ${tracking} | ${current}, every ${ms(pollInterval, {
             long: true,
-          })}.`
+          })} in ${baseDir}.`
         );
         if (!tracking || !current) {
           console.error("Error: Not following a remote repository.");
@@ -72,10 +72,11 @@ export function workerGitCI(args: {
             await git.reset(ResetMode.HARD, [tracking]);
             await git.checkout(current);
 
+            console.log(`Executing: "${command}".`);
             const cp = exec(command, { async: true });
 
-            cp.on("close", (code) => {
-              if (code === 0 && continueAfterExecution) {
+            cp.on("close", () => {
+              if (continueAfterExecution) {
                 workerGitCI(args);
               } else {
                 process.exit(0);
