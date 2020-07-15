@@ -1,4 +1,4 @@
-import child_process from "child_process";
+import { exec } from "shelljs";
 import ms from "ms";
 import { resolve } from "path";
 import simpleGit, { CheckRepoActions, ResetMode } from "simple-git";
@@ -29,9 +29,7 @@ export function workerGitCI(args: {
     baseDir = process.cwd();
   }
 
-  const [cmd, ...cmdArgs] = command.split(" ");
-
-  if (!cmd) {
+  if (!command) {
     const error = Error("Command invalid!");
     Error.captureStackTrace(error, workerGitCI);
     throw error;
@@ -74,11 +72,13 @@ export function workerGitCI(args: {
             await git.reset(ResetMode.HARD, [tracking]);
             await git.checkout(current);
 
-            const cp = child_process.spawn(cmd, cmdArgs, { stdio: "inherit" });
+            const cp = exec(command, { async: true });
 
             cp.on("close", (code) => {
               if (code === 0 && continueAfterExecution) {
                 workerGitCI(args);
+              } else {
+                process.exit(0);
               }
             });
           }
