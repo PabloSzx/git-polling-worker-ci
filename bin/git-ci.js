@@ -5,7 +5,7 @@ const ms = require("ms");
 const { workerGitCI } = require("../dist/index");
 
 program
-  .version("0.0.2")
+  .version("0.0.3")
   .description("Minimal Git CI Polling solution.")
   .option("-d, --directory <dir>", "Specify a directory different than the current one.")
   .option(

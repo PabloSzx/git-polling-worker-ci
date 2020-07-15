@@ -69,6 +69,14 @@ export function workerGitCI(args: {
 
             clearInterval(polling);
 
+            const stashResponse = await git.stash([
+              "push",
+              "-m",
+              `"git-polling-worker-ci: ${new Date().toISOString()}"`,
+            ]);
+
+            console.log(stashResponse);
+
             await git.reset(ResetMode.HARD, [tracking]);
             await git.checkout(current);
 
