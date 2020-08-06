@@ -1,5 +1,7 @@
 # Git Polling Worker CI
 
+[![npm version](https://badge.fury.io/js/git-polling-worker-ci.svg)](https://badge.fury.io/js/git-polling-worker-ci)
+
 ## Installation
 
 ### Global
@@ -55,5 +57,38 @@ workerGitCI({
   command: "yarn start",
   pollingInterval: "30 seconds",
   continueAfterExecution: true,
+});
+```
+
+#### Directory changed scripts
+
+> (Only via script)
+
+You can specify `Directory changed scripts`, to verify if specific directories change, and only if the did, execute the specified script, which can be a string of the bash script to be executed or the function (can be an async function).
+
+These scripts always execute before the main command, either sequentially or in parallel (`sequentially` by default).
+
+```js
+workerGitCI({
+  command: "yarn start", // You can specify a shell script.
+  script: () => {
+    // Or a function, but at least one of them has to be specified.
+    console.log("Hello world");
+  },
+  pollingInterval: "30 seconds", // optional => default = 1 minute
+  continueAfterExecution: false, // optional => default = true
+  directoryChangedScripts: {
+    parallel: true, // optional =>  default = false
+    options: [
+      {
+        script: "yarn build-client", // Can be a function or a shell script.
+        directory: "client", // Directory to compare with, using https://www.npmjs.com/package/folder-hash
+      },
+      {
+        script: "yarn build-api",
+        directory: "api",
+      },
+    ],
+  },
 });
 ```
