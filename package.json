@@ -1,6 +1,6 @@
 {
   "name": "git-polling-worker-ci",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "repository": "https://github.com/PabloSzx/git-polling-worker-ci",
   "license": "MIT",
   "author": "PabloSz <pablosaez1995@gmail.com>",
