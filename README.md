@@ -82,11 +82,11 @@ workerGitCI({
     options: [
       {
         script: "yarn build-client", // Can be a function or a shell script.
-        directory: "client", // Directory to compare with, using https://www.npmjs.com/package/folder-hash
+        directories: ["client", "./package.json"], // Directories to compare with, using https://www.npmjs.com/package/folder-hash
       },
       {
         script: "yarn build-api",
-        directory: "api",
+        directories: ["api", "./package.json"],
       },
     ],
   },

@@ -4,8 +4,11 @@ import { resolve as pathResolve } from "path";
 import simpleGit, { CheckRepoActions, ResetMode } from "simple-git";
 import { hashElement } from "folder-hash";
 
-const directoryHash = async (directory: string) => {
-  return (await hashElement(directory)).toString();
+const directoriesHash = async (directories: string[]) => {
+  const directoriesHashList = (
+    await Promise.all(directories.map((directory) => hashElement(directory)))
+  ).map((dirHash) => dirHash.toString());
+  return directoriesHashList.join("");
 };
 
 export function workerGitCI(args: {
@@ -60,9 +63,9 @@ export function workerGitCI(args: {
        */
       script: (() => Promise<void> | void) | string;
       /**
-       * Directory to check against.
+       * Directories to check against. Can be files or entire folders.
        */
-      directory: string;
+      directories: string[];
     }[];
   };
 }) {
@@ -120,12 +123,18 @@ export function workerGitCI(args: {
         }
 
         directoryChangedScripts?.options.forEach((opt) => {
-          opt.directory = pathResolve(opt.directory);
+          opt.directories = opt.directories.map((directory) => pathResolve(directory));
         });
 
-        const baseHashes = directoryChangedScripts?.options.map(({ directory }) => {
-          console.log(`Listening for changes on ${directory}`);
-          return directoryHash(directory);
+        if (directoryChangedScripts?.options) {
+          directoryChangedScripts.options = directoryChangedScripts.options.filter((opt) => {
+            return opt.directories.filter((v) => !!v).length !== 0;
+          });
+        }
+
+        const baseHashes = directoryChangedScripts?.options.map(({ directories }) => {
+          console.log(`Listening for changes on ${directories.map((v) => `"${v}"`).join(" | ")}`);
+          return directoriesHash(directories);
         });
 
         const polling = setInterval(async () => {
@@ -150,18 +159,23 @@ export function workerGitCI(args: {
               console.log(`Reset repository is disabled.`);
             }
 
-            if (directoryChangedScripts && baseHashes) {
+            if (directoryChangedScripts && baseHashes?.length) {
               try {
                 if (directoryChangedScripts.parallel) {
                   await Promise.all(
-                    directoryChangedScripts.options.map(({ script, directory }, scriptIndex) => {
+                    directoryChangedScripts.options.map(({ script, directories }, scriptIndex) => {
                       return new Promise<void>(async (resolve, reject) => {
                         try {
                           const didChange =
-                            (await baseHashes[scriptIndex]) !== (await directoryHash(directory));
+                            (await baseHashes[scriptIndex]) !==
+                            (await directoriesHash(directories));
 
                           if (didChange) {
-                            console.log(`${directory} changed, executing script in parallel!`);
+                            console.log(
+                              `${directories
+                                .map((v) => `"${v}"`)
+                                .join(" | ")} changed, executing script in parallel!`
+                            );
                             if (typeof script === "string") {
                               console.log(`$ ${script}`);
                               const cp = exec(script, { async: true });
@@ -183,7 +197,9 @@ export function workerGitCI(args: {
                               }
                             }
                           } else {
-                            console.log(`${directory} didn't change!`);
+                            console.log(
+                              `${directories.map((v) => `"${v}"`).join(" | ")} didn't change!`
+                            );
                             resolve();
                           }
                         } catch (err) {
@@ -195,13 +211,17 @@ export function workerGitCI(args: {
                 } else {
                   for (const [
                     scriptIndex,
-                    { script, directory },
+                    { script, directories },
                   ] of directoryChangedScripts.options.entries()) {
                     const didChange =
-                      (await baseHashes[scriptIndex]) !== (await directoryHash(directory));
+                      (await baseHashes[scriptIndex]) !== (await directoriesHash(directories));
 
                     if (didChange) {
-                      console.log(`${directory} changed, executing script sequentially!`);
+                      console.log(
+                        `${directories
+                          .map((v) => `"${v}"`)
+                          .join(" | ")} changed, executing script sequentially!`
+                      );
                       if (typeof script === "string") {
                         console.log(`$ ${script}`);
                         const result = exec(script);
@@ -213,7 +233,7 @@ export function workerGitCI(args: {
                         await script();
                       }
                     } else {
-                      console.log(`${directory} didn't change!`);
+                      console.log(`${directories.map((v) => `"${v}"`).join(" | ")} didn't change!`);
                     }
                   }
                 }
